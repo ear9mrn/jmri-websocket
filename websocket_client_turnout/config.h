@@ -16,8 +16,8 @@
 #define PINS 18
 #define MYNULL 9999
 
-const char* ssid =                    "conspiracy";       //Enter SSID
-const char* password =                "petefish";         //Enter Password
+const char* ssid =                    "myssid";       //Enter SSID
+const char* password =                "mypass";         //Enter Password
 String client_addr;                   //configured using web interface, saved in EEPROM
 long OnTime = 30000;                  //interval of alive message in ms.  
 
