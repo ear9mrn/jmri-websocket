@@ -1,5 +1,6 @@
 
 #include "EepromStore.h"
+#include  "config.h"
 #include <EEPROM.h>
 
 
@@ -7,6 +8,7 @@ jmriData EEStore::init(){
 
     EEPROM.begin(512);
     Serial.begin(115200);
+    delay(1000);
     Serial.println("Size of EEPROM" + EEPROM.length() );
     Serial.println("");
     Serial.println("Getting configuration data from EEPROM:");
@@ -16,7 +18,7 @@ jmriData EEStore::init(){
     eeStore=(EEStore *)calloc(1,sizeof(EEStore));
     EEPROM.get(0,eeStore->data);
     
-    if ( strncmp(eeStore->data.id,EESTORE_ID,sizeof(EESTORE_ID))!=0 ) {
+    if ( strncmp(eeStore->data.id,EESTORE_ID,sizeof("frd"))!=0 ) {
         Serial.println("EEPROM is not configured. Setting up EEPROM...");
         Serial.println("Please visit client ip using a browser to configure...");
         Serial.println("");
@@ -24,14 +26,13 @@ jmriData EEStore::init(){
         configeeprom();
         
     }
+
+    Serial.println("Websocket server address: " + String(eeStore->data.websockets_server_host) );  
+    Serial.println("Websocket server port: "    + String(eeStore->data.websockets_server_port) );
+    Serial.println("Client address: "           + String(eeStore->data.client_id)); 
+    Serial.println("");
     
     jmriData jmri_data;
-
-
-    Serial.println("Websocket server address: " + String(jmri_data.websockets_server_host) );  
-    Serial.println("Websocket server port: "    + String(jmri_data.websockets_server_port) );
-    Serial.println("Client address: "           + jmri_data.client_id); 
-    Serial.println("");
     
     config_active_pins  (&jmri_data, eeStore->data.active_pins);
     config_pwm_pins     (&jmri_data, eeStore->data.pwm_pins );
@@ -40,6 +41,9 @@ jmriData EEStore::init(){
     jmri_data.websockets_server_host = eeStore->data.websockets_server_host;
     jmri_data.websockets_server_port = eeStore->data.websockets_server_port;
     jmri_data.client_id              = String(eeStore->data.client_id);
+    jmri_data.ssid = ssid;
+    jmri_data.password = password;
+
     
     return jmri_data;
     
@@ -75,7 +79,7 @@ void EEStore::config_pwm_pins(jmriData *jmri_datax, int *pins){
 
       jmri_datax->pwm_count = 0;
 
-      Serial.print("xPWM (Servo) Pins: ");
+      Serial.print("PWM (Servo) Pins: ");
       for (int i=0; i<PINS; i++){
                jmri_datax->pwm_pins[i] = pins[i];
                if (pins[i] != MYNULL && pins[i] != 99) {
@@ -123,7 +127,9 @@ void EEStore::config_sensor_pins(jmriData *jmri_data, int *pins){
                } else {
                   jmri_data->sensor_pins[i] = MYNULL;
                }
-      } Serial.println(" ");
+      } 
+      Serial.println(" ");
+      Serial.println(" ");
 }
 
 

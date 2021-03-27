@@ -9,7 +9,10 @@ void JMRI_Ws::connect_socket(jmriData * jmri_data  ){
     
     Serial.println(" ");
     Serial.println("Trying to connect to Websocket...");
-    
+
+    if (jmri_data->connected){
+        jmri_data->ws_client->close();
+    }
     jmri_data->connected = jmri_data->ws_client->connect(jmri_data->websockets_server_host, port, clientid);
     
     if(jmri_data->connected) {

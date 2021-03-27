@@ -2,11 +2,13 @@
 #define JMRI_VARS_h
 
 #include  "Arduino.h"
-#define   MYNULL  9999
-#define   PINS 18      
-#define   DEFAULTWSSERVER "123.123.123.123"
-#define   DEFAULTWSPORT "8000"
-#define   DEFAULTWSCLIENTID "1001"
+#define   DEFAULTWSSERVER "123.123.123.123"              //Websocket server ip address
+#define   DEFAULTWSPORT "8000"                           //Websocket server port
+#define   DEFAULTWSCLIENTID "1001"                       //Websocket client id each client has to have a unique id.
+#define   OnTime 30000                                   //lag(ms) between sending keep alive to ws server.
+#define   PINS 18                                        //number of GPIO pins available (>= to number available)
+
+#define   MYNULL  9999   
 
 #include  <Servo.h>
 
@@ -26,8 +28,8 @@ struct jmriData{
   String websockets_server_port;
   String client_id;  
   String client_mac; 
-  String ssid;        
-  String password; 
+  const char* ssid;        
+  const char* password; 
   String client_ip; 
   int active_pins[PINS];
   int pwm_pins[PINS];  
@@ -40,6 +42,7 @@ struct jmriData{
   ESP8266WiFiClass wifi_client;
   WebsocketsClient *ws_client;
   bool connected;
+  jmriData *jmri_ptr;
 };
 
 #endif

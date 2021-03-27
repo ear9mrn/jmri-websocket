@@ -1,18 +1,16 @@
 
-#include  "config.h"
 #include  "vars.h"
 #include  "EepromStore.h"
 #include  "jmri_wifi.h"
 #include  "jmri_ws.h"
 #include  "jmri_web.h"
 
-WebsocketsClient  client;
+WebsocketsClient client;
 jmriData jmri_data;
 AsyncWebServer server(80);
-
-unsigned long previousMillis = 0;
-unsigned long currentMillis = 0;
-long OnTime = 30000;                         //interval of alive message in ms. 
+               
+long previousMillis = 0;
+long currentMillis = 0;
 
 void setup() {
 
@@ -21,12 +19,19 @@ void setup() {
       while (! Serial);  
       delay(random(1000));
 
+      Serial.println("JMRI ESP2866 accessory client.");
+      Serial.println("");
+      
       //initiate/read eeprom
       jmri_data = EEStore::init(); 
-
+      jmri_data.jmri_ptr = &jmri_data;
+   
       //connect to wifi
       JMRI_Wifi::connect_wifi(&jmri_data);
-      
+
+      //start client config web server
+      JMRI_WEB::jmri_web(&server,&jmri_data);
+
       //connect to jmri websocket server
       jmri_data.connected = false;
       jmri_data.ws_client = &client;
@@ -36,15 +41,14 @@ void setup() {
         delay(5000);
       }
 
-      //start client config web server
-      JMRI_WEB::jmri_web(&server,jmri_data);
 
 }
 
 void pin_activate(int thepin, int thestate){
                   
          for (int i = 0; i < PINS; i++){
-              Serial.println("PWM Pin: " + String(jmri_data.pwm_pins[i]));
+              //Serial.println("PWM Pin: " + String(jmri_data.pwm_pins[i]));
+              //Serial.println("Active Pin: " + String(jmri_data.active_pins[i]));
               if (jmri_data.active_pins[i] == MYNULL){
                 break;
               }
@@ -66,6 +70,7 @@ void loop() {
     currentMillis = millis();
 
     //let the server know state we are still connected...
+    //doubles up as re-connect user changes IP port port number of ws server.
     if (currentMillis - previousMillis >= OnTime  ) {
       JMRI_Ws::send_heartbeat(&jmri_data);  
       previousMillis = currentMillis;

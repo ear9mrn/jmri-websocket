@@ -8,7 +8,7 @@
 struct JMRI_WEB{
 
   static JMRI_WEB *jmri_web_ptr;
-  static void jmri_web(AsyncWebServer *server, jmriData jmri_data);
+  static void jmri_web(AsyncWebServer *server, jmriData *jmri_data);
   static void notFound(AsyncWebServerRequest *request);
   static String processor(const String& var);
   static void update_ws_host(String ws_host);
@@ -19,6 +19,7 @@ struct JMRI_WEB{
   static void update_sensor_pins(String sensor_pins);
   static void sendheartbeat();
   static int  split(String data, char separator, String result[]);
+  static void run_test();
   jmriData jmri_data_web;
   static int webAddress;
   

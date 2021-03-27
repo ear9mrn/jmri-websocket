@@ -13,10 +13,11 @@ JMRI_WEB *JMRI_WEB::jmri_web_ptr=NULL;
 int JMRI_WEB::webAddress=0;
 
 
-void JMRI_WEB::jmri_web(AsyncWebServer *server, jmriData jmri_data){
+void JMRI_WEB::jmri_web(AsyncWebServer *server, jmriData *jmri_data){
+
 
     jmri_web_ptr=(JMRI_WEB *)calloc(1,sizeof(JMRI_WEB));
-    jmri_web_ptr->jmri_data_web = jmri_data;
+    jmri_web_ptr->jmri_data_web = *jmri_data;
     
     //Send web page with input fields to client
     server->on("/", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -25,7 +26,7 @@ void JMRI_WEB::jmri_web(AsyncWebServer *server, jmriData jmri_data){
     });
     
     server->on("/test", HTTP_GET, [](AsyncWebServerRequest *request){
-           //run_test = true;
+           run_test();
            request->send(200, "text/html", "Conducting pin configuration test....  <br><br><a href=\"/\">Return to Config Page</a>");              
     });
 
@@ -46,22 +47,17 @@ void JMRI_WEB::jmri_web(AsyncWebServer *server, jmriData jmri_data){
               inputParam = PARAM_INPUT_1;
               update_ws_host(inputMessage);
               Serial.println("Updated JRMI host IP address: " + inputMessage);
-              //reset_connection = true;
-              //JMRI_WEB::sendheartbeat();
-              
+       
         }
-
 
         // GET input2 value for JMRI host port
         else if (request->hasParam(PARAM_INPUT_2)) {
               inputMessage = request->getParam(PARAM_INPUT_2)->value();
               inputParam = PARAM_INPUT_2;
-              update_ws_port(inputMessage);
               Serial.println("Updated JRMI host port number: " + inputMessage);
-              //reset_connection = true;
-              //JMRI_WEB::sendheartbeat();
-        }
+              update_ws_port(inputMessage);
 
+        }
 
         // GET input3 value this client address. unique upto 7 characters.
         else if (request->hasParam(PARAM_INPUT_3)) {
@@ -69,8 +65,6 @@ void JMRI_WEB::jmri_web(AsyncWebServer *server, jmriData jmri_data){
               inputParam = PARAM_INPUT_3;
               update_client_id(inputMessage);
               Serial.println("Updated client address: " + inputMessage);
-              //reset_connection = true;
-              //JMRI_WEB::sendheartbeat();
         }
 
         // GET input4 value comma seperated list of active pins for tunrnout activation (frog relay)
@@ -79,7 +73,6 @@ void JMRI_WEB::jmri_web(AsyncWebServer *server, jmriData jmri_data){
               inputParam = PARAM_INPUT_4;
               update_active_pins(inputMessage);
               Serial.println("Active pins to EEPROM: " + inputMessage);
-    
         }
 
         // GET input5 value comma seperated list of pwm pins for tunrnout motor (enter -1 for not active)
@@ -120,76 +113,77 @@ void JMRI_WEB::notFound(AsyncWebServerRequest *request) {
 }
 
 void JMRI_WEB::update_ws_host(String ws_host){
-  
-        jmri_web_ptr->jmri_data_web.websockets_server_host = ws_host; 
+        
+        jmri_web_ptr->jmri_data_web.jmri_ptr->websockets_server_host = ws_host;
         EEStore::updateWebSockHost(ws_host);
+
   
 }
 
 void JMRI_WEB::update_ws_port(String ws_port){
-  
-        jmri_web_ptr->jmri_data_web.websockets_server_port = ws_port; 
+
+        jmri_web_ptr->jmri_data_web.jmri_ptr->websockets_server_port = ws_port; 
         EEStore::updateWebSockPort(ws_port);
   
 }
 
 void JMRI_WEB::update_client_id(String client_id){
   
-        jmri_web_ptr->jmri_data_web.client_id = client_id; 
+        jmri_web_ptr->jmri_data_web.jmri_ptr->client_id = client_id; 
         EEStore::updateClientId(client_id);
   
 }
 void JMRI_WEB::update_active_pins(String active_pins){
 
        String inmesg[PINS];
-       jmri_web_ptr->jmri_data_web.active_count = split(active_pins, ',', inmesg);
+       jmri_web_ptr->jmri_data_web.jmri_ptr->active_count = split(active_pins, ',', inmesg);
        
        for (int i=0; i<PINS; i++){
-           if (i < jmri_web_ptr->jmri_data_web.active_count){
+           if (i < jmri_web_ptr->jmri_data_web.jmri_ptr->active_count){
               Serial.println(inmesg[i]);
-              jmri_web_ptr->jmri_data_web.active_pins[i] = inmesg[i].toInt();
-              pinMode(jmri_web_ptr->jmri_data_web.active_pins[i],OUTPUT);
+              jmri_web_ptr->jmri_data_web.jmri_ptr->active_pins[i] = inmesg[i].toInt();
+              pinMode(jmri_web_ptr->jmri_data_web.jmri_ptr->active_pins[i],OUTPUT);
             } else {
-              jmri_web_ptr->jmri_data_web.active_pins[i] = MYNULL;
+              jmri_web_ptr->jmri_data_web.jmri_ptr->active_pins[i] = MYNULL;
             }
        }
        Serial.println("Updated active pins: " + active_pins);
-       EEStore::updateActivePins(jmri_web_ptr->jmri_data_web.active_pins);
+       EEStore::updateActivePins(jmri_web_ptr->jmri_data_web.jmri_ptr->active_pins);
           
 }
 
 void JMRI_WEB::update_pwm_pins(String pwm_pins){
 
         String inmesg[PINS];
-        jmri_web_ptr->jmri_data_web.pwm_count = split(pwm_pins, ',', inmesg);
+        jmri_web_ptr->jmri_data_web.jmri_ptr->pwm_count = split(pwm_pins, ',', inmesg);
         
         for (int i=0; i<PINS; i++){
-              if (i < jmri_web_ptr->jmri_data_web.pwm_count){
-                jmri_web_ptr->jmri_data_web.pwm_pins[i] = inmesg[i].toInt();
-                jmri_web_ptr->jmri_data_web.servos[i].attach (jmri_web_ptr->jmri_data_web.pwm_pins[i], 700, 2500);
+              if (i < jmri_web_ptr->jmri_data_web.jmri_ptr->pwm_count){
+                jmri_web_ptr->jmri_data_web.jmri_ptr->pwm_pins[i] = inmesg[i].toInt();
+                jmri_web_ptr->jmri_data_web.jmri_ptr->servos[i].attach (jmri_web_ptr->jmri_data_web.jmri_ptr->pwm_pins[i], 700, 2500);
               } else {
-                jmri_web_ptr->jmri_data_web.pwm_pins[i] = MYNULL;
+                jmri_web_ptr->jmri_data_web.jmri_ptr->pwm_pins[i] = MYNULL;
               }
         }
         Serial.println("Updated PWM(servo) pins : " + pwm_pins);
-        EEStore::updatePWMPins(jmri_web_ptr->jmri_data_web.pwm_pins);
+        EEStore::updatePWMPins(jmri_web_ptr->jmri_data_web.jmri_ptr->pwm_pins);
 }
 
 void JMRI_WEB::update_sensor_pins(String sensor_pins){
 
         String inmesg[PINS];
-        jmri_web_ptr->jmri_data_web.sensor_count = split(sensor_pins, ',', inmesg);
+        jmri_web_ptr->jmri_data_web.jmri_ptr->sensor_count = split(sensor_pins, ',', inmesg);
         for (int i=0; i<PINS; i++){
-          if (i < jmri_web_ptr->jmri_data_web.sensor_count){
-                jmri_web_ptr->jmri_data_web.sensor_pins[i] = inmesg[i].toInt();
-                pinMode(jmri_web_ptr->jmri_data_web.sensor_pins[i],INPUT_PULLUP);
-                jmri_web_ptr->jmri_data_web.sensor_state[i] = digitalRead(jmri_web_ptr->jmri_data_web.sensor_pins[i]);
+          if (i < jmri_web_ptr->jmri_data_web.jmri_ptr->sensor_count){
+                jmri_web_ptr->jmri_data_web.jmri_ptr->sensor_pins[i] = inmesg[i].toInt();
+                pinMode(jmri_web_ptr->jmri_data_web.jmri_ptr->sensor_pins[i],INPUT_PULLUP);
+                jmri_web_ptr->jmri_data_web.jmri_ptr->sensor_state[i] = digitalRead(jmri_web_ptr->jmri_data_web.jmri_ptr->sensor_pins[i]);
           } else {
-                jmri_web_ptr->jmri_data_web.sensor_pins[i] = MYNULL;
+                jmri_web_ptr->jmri_data_web.jmri_ptr->sensor_pins[i] = MYNULL;
           }
         }
         Serial.println("Updated sensor pins : " + sensor_pins);
-        EEStore::updateSensorPins(jmri_web_ptr->jmri_data_web.sensor_pins);
+        EEStore::updateSensorPins(jmri_web_ptr->jmri_data_web.jmri_ptr->sensor_pins);
 }
 
 
@@ -203,26 +197,26 @@ String JMRI_WEB::processor(const String& var)
 {
         if(var == "CLIENTADDRESS")
           //return WiFi.localIP().toString();
-          return jmri_web_ptr->jmri_data_web.client_ip;
+          return jmri_web_ptr->jmri_data_web.jmri_ptr->client_ip;
           
         if(var == "CLIENTMACADDRESS")
           //return WiFi.macAddress();
-          return jmri_web_ptr->jmri_data_web.client_mac;
+          return jmri_web_ptr->jmri_data_web.jmri_ptr->client_mac;
           
         if(var == "WEBSOCKETHOST")
-          return jmri_web_ptr->jmri_data_web.websockets_server_host;
+          return jmri_web_ptr->jmri_data_web.jmri_ptr->websockets_server_host;
       
         if(var == "WEBSOCKETPORT")
-          return jmri_web_ptr->jmri_data_web.websockets_server_port;
+          return jmri_web_ptr->jmri_data_web.jmri_ptr->websockets_server_port;
       
         if(var == "CLIENTADDR")
-           return jmri_web_ptr->jmri_data_web.client_id;
+           return jmri_web_ptr->jmri_data_web.jmri_ptr->client_id;
       
         if(var == "ACTIVEPINS") {
           String pins = ""; 
           int i = 0;
-          for (int i=0; i<jmri_web_ptr->jmri_data_web.active_count; i++){
-              pins += String(jmri_web_ptr->jmri_data_web.active_pins[i]);
+          for (int i=0; i<jmri_web_ptr->jmri_data_web.jmri_ptr->active_count; i++){
+              pins += String(jmri_web_ptr->jmri_data_web.jmri_ptr->active_pins[i]);
               pins += ",";
             }
           pins.remove(pins.length()-1);
@@ -232,8 +226,8 @@ String JMRI_WEB::processor(const String& var)
         if(var == "PWMPINS") {
           String pins = ""; 
           int i = 0;
-          for (int i=0; i<jmri_web_ptr->jmri_data_web.pwm_count; i++){
-              pins += String(jmri_web_ptr->jmri_data_web.pwm_pins[i]);
+          for (int i=0; i<jmri_web_ptr->jmri_data_web.jmri_ptr->pwm_count; i++){
+              pins += String(jmri_web_ptr->jmri_data_web.jmri_ptr->pwm_pins[i]);
               pins += ",";
             }
           pins.remove(pins.length()-1);
@@ -242,12 +236,12 @@ String JMRI_WEB::processor(const String& var)
        
         if(var == "JMRITURNOUTS") {
               String jmripins = "";
-              for (int i=0; i<jmri_web_ptr->jmri_data_web.active_count; i++){
+              for (int i=0; i<jmri_web_ptr->jmri_data_web.jmri_ptr->active_count; i++){
                     if (i>0){
                        jmripins += ",";
                     }
                     jmripins += "IT";
-                    jmripins += jmri_web_ptr->jmri_data_web.client_id;
+                    jmripins += jmri_web_ptr->jmri_data_web.jmri_ptr->client_id;
                     jmripins += ":";
                     jmripins += String(jmri_web_ptr->jmri_data_web.active_pins[i]);
       
@@ -259,8 +253,8 @@ String JMRI_WEB::processor(const String& var)
         if(var == "SENSORPINS") {
           String pins = ""; 
           int i = 0;
-          for (int i=0; i<jmri_web_ptr->jmri_data_web.sensor_count; i++){
-              pins += String(jmri_web_ptr->jmri_data_web.sensor_pins[i]);
+          for (int i=0; i<jmri_web_ptr->jmri_data_web.jmri_ptr->sensor_count; i++){
+              pins += String(jmri_web_ptr->jmri_data_web.jmri_ptr->sensor_pins[i]);
               pins += ",";
             }
           pins.remove(pins.length()-1);
@@ -284,4 +278,31 @@ int JMRI_WEB::split(String data, char separator, String result[])
         }
     }
     return found;
+}
+
+void JMRI_WEB::run_test(){
+
+          for (int i = 0; i < PINS; i++){
+              //Serial.println("PWM Pin: " + String(jmri_data.pwm_pins[i]));
+              //Serial.println("Active Pin: " + String(jmri_data.active_pins[i]));
+
+              
+              if (jmri_web_ptr->jmri_data_web.jmri_ptr->active_pins[i] == MYNULL){
+                break;
+               } else {
+                
+                  int pwmpin = jmri_web_ptr->jmri_data_web.jmri_ptr->pwm_pins[i];
+                  int thepin = jmri_web_ptr->jmri_data_web.jmri_ptr->active_pins[i];
+                  
+                  if (jmri_web_ptr->jmri_data_web.jmri_ptr->active_pins[i] != MYNULL){
+                      
+                       Serial.print("Pin: " + String(thepin) + " ");
+                       Serial.print("PWM Pin: " + String(pwmpin) + ", ");
+                       digitalWrite(thepin, !digitalRead(thepin));
+                       jmri_web_ptr->jmri_data_web.jmri_ptr->servos[i].write(180 * digitalRead(thepin));
+                       Serial.println("State: " + String( digitalRead(thepin) ) );
+           
+                  }     
+              }
+          }
 }
