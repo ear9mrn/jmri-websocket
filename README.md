@@ -112,3 +112,43 @@ The same applies for the sensors, albeit in the opposite direction. If a pin lis
 
 
 
+
+
+
+Step by step jmir websocket setup instructions:
+
+Server:
+    • This is carried on the machine running JMRI.
+    • Download the code from github https://github.com/ear9mrn/jmri-websocket.
+    • Place the JMRI_WebSocket folder (and content) in the JMRI/jython directory. 
+    • Start JMRI and open “display message log” from the debug menu.
+    • Start jmri websocket. From the “Panels” menu select “Run Script…” select the WebSocketInterface.py file from JMRI/jython/JMRI_WebSocket directory.
+    • You should now see log information in the message log window indicating the websocket server is now running.
+    • The only configuration possible it to change the default port from 8000 if required (edit the script appropriately if necassary).
+
+Client:
+    • This sketch has been tested on a range of ESP8266 based devices including:
+        ◦ ESP-01 (attached to various break out boards)
+            ▪ for 2x and 4x relay boards you need to set the “ESP01_2_4” flag to 1 in the vars.h file.
+        ◦ ESP8266
+            ▪ D1 Mini
+            ▪ Node MCU Amica
+        ◦ ESP-12F
+            ▪ 8x relay board
+    • From the same github repository https://github.com/ear9mrn/jmri-websocket download the jmir_websocket_client folder to your Arduino IDE folder.
+    • Edit the config.h file entering the ssid and password for you wifi network.
+    • Edit the vars.h file enter the ip address of the machine running jmri. Also change to port if you changed it on the server side from the default of 8000.
+    • Open the serial monitor, compile and upload script to you ESP8266 device. Once running it should automatically connect to the jmri websocket, check the serial monitor this should also show the ip address the device has been assigned.
+    • Enter the ip address assigned into a browser.
+    • Change the “Client address” from the default 1001 to some other value between 1001 and 9999. Each client should have a unique number, this is how we identify a turnout or sensor. Once changed hit the “write to EEPROM” to save it permanently.
+    • Add a list of pins that will be used to control relay (or some other device). This should be a comma separated list. (e.g. 3,2,5…). As before, hit the “write to EEPROM” to save it permanently.
+    • Add PWM pins. These are pins that have a servo attached. There should be the same number of pins in the PWM pin list as listed in the active pin list. This is so you can active a relay for a frog and a servo with one command (pairs). If you do not have a paired servo pin for an active pin just enter a high value such as “99” then it will simply be ignored. As before, hit the “write to EEPROM” to save it permanently.
+    • All changes are saved to EEPROM and so survive a reboot. You can make changes by simply entering the device IP address in a browser/ Th only exception is the wifi ssid and password, this can only be changed using the Arduino IDE and re-uploading the sketch.
+
+JMRI turnout and sensor table:
+    • Enter the id and pin numbers as defined above as internal turnout (IT) or internal sensors (IS).
+    • For example if your called your device 3001 and pin 1 was connected to a relay for your turnout you enter 3001:1. You don’t need to worry about the servo (PWM) pin and that was linked to the active pin when you setup the device.
+    • Sam applies to the sensor. If you called your device 3005 and the sensor was attached to pin 4 you need to create an internal sensor in the sensor table called 3005:4.
+
+
+
